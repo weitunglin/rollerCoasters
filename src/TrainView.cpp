@@ -28,11 +28,11 @@
 #include <Fl/fl.h>
 
 // we will need OpenGL, and OpenGL needs windows.h
-#include <windows.h>
+// #include <windows.h>
 //#include "GL/gl.h"
 #include <glad/glad.h>
 #include <glm/glm.hpp>
-#include "GL/glu.h"
+#include <FL/glu.h>
 
 #include "TrainView.H"
 #include "TrainWindow.H"

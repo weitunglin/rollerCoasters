@@ -52,7 +52,7 @@
 #include "ArcBallCam.H"
 
 #include <math.h>
-#include <windows.h>
+// #include <windows.h>
 
 // the FlTk headers have lots of warnings - these are bad, but there's not
 // much we can do about them
@@ -61,8 +61,8 @@
 #pragma warning(disable:4312)		// convert long to void*
 #include <FL/Fl_Gl_Window.h>
 #include <Fl/Fl.h>
-#include <GL/gl.h>
-#include <GL/glu.h>
+#include <FL/gl.h>
+#include <FL/glu.h>
 #include <Fl/Fl_Double_Window.h>
 #pragma warning(pop)
 

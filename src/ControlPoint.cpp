@@ -24,8 +24,8 @@
 
 *************************************************************************/
 
-#include <windows.h>
-#include <GL/gl.h>
+// #include <windows.h>
+#include <FL/gl.h>
 #include <math.h>
 
 #include "ControlPoint.H"

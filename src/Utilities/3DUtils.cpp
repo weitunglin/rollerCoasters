@@ -30,10 +30,10 @@
 
 #include <math.h>
 
-#include <windows.h>
-#include <GL/gl.h>
+// #include <windows.h>
+#include <FL/gl.h>
 #include <FL/Fl.h>
-#include <GL/glu.h>
+#include <FL/glu.h>
 
 #include "3DUtils.H"
 
