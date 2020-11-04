@@ -237,8 +237,8 @@ int getMouseLine(double& x1, double& y1, double& z1,
 								 double& x2, double& y2, double& z2)
 //===============================================================================
 {
-  int x = Fl::event_x();
-  int iy = Fl::event_y();
+  int x = 2 * Fl::event_x();
+  int iy = 2 * Fl::event_y();
 
   double mat1[16],mat2[16];		// we have to deal with the projection matrices
   int viewport[4];

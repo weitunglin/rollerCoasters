@@ -43,7 +43,9 @@ class Pnt3f {
 		// from an array 
 		Pnt3f(const float*);			
 		// copy constructor created by default
-		// Pnt3f(const Pnt3f&);		
+		Pnt3f(const Pnt3f& p) : x(p.x), y(p.y), z(p.z) {
+
+		}
 
 	public:
 		// if you want to treat this thing as a C vector (point to float)
@@ -51,8 +53,10 @@ class Pnt3f {
 
 		// some useful operators - not the complete set, but just some basic ones
 		Pnt3f operator * (const Pnt3f&) const;	/* cross product */
-		Pnt3f operator * (const float)	const;  /* scale by scalar */
+		Pnt3f operator * (const float) const;  /* scale by scalar */
 		Pnt3f operator + (const Pnt3f&) const;	/* create a temp */
+		Pnt3f operator - (const Pnt3f&) const;
+		Pnt3f operator *= (const float);
 
 		// make sure that we're unit length - vertical in the error case (0 length)
 		void normalize();
@@ -95,6 +99,14 @@ operator * (const float s) const
 	return Pnt3f(x*s,y*s,z*s);
 };
 
+inline Pnt3f Pnt3f::
+operator *= (const float s) {
+	x *= s;
+	y *= s;
+	z *= s;
+	return *this;
+};
+
 //*****************************************************************************
 //
 // *
@@ -130,3 +142,8 @@ operator*(const Pnt3f& p) const
 	q.z = p.y * x - p.x * y;
 	return q;
 };
+
+inline Pnt3f Pnt3f::
+operator-(const Pnt3f& p) const {
+	return Pnt3f(x - p.x, y - p.y, z - p.z);
+}

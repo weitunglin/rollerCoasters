@@ -24,7 +24,6 @@
 
 *************************************************************************/
 
-#include <iostream>
 #include <Fl/fl.h>
 
 // we will need OpenGL, and OpenGL needs windows.h
@@ -192,7 +191,7 @@ void TrainView::draw()
 		throw std::runtime_error("Could not initialize GLAD!");
 
 	// Set up the view port
-	glViewport(0,0,w(),h());
+	glViewport(0,0,2*w(),2*h());
 
 	// clear the window, be sure to clear the Z-Buffer too
 	glClearColor(0,0,.3f,0);		// background should be blue
@@ -349,7 +348,7 @@ void TrainView::drawStuff(bool doingShadows)
 	// Draw the control points
 	// don't draw the control points if you're driving 
 	// (otherwise you get sea-sick as you drive through them)
-	if (!tw->trainCam->value()) {
+	// if (!tw->trainCam->value()) {
 		for(size_t i=0; i<m_pTrack->points.size(); ++i) {
 			if (!doingShadows) {
 				if ( ((int) i) != selectedCube)
@@ -359,7 +358,7 @@ void TrainView::drawStuff(bool doingShadows)
 			}
 			m_pTrack->points[i].draw();
 		}
-	}
+	// }
 	// draw the track
 	//####################################################################
 	// TODO: 
@@ -369,6 +368,280 @@ void TrainView::drawStuff(bool doingShadows)
 #ifdef EXAMPLE_SOLUTION
 	drawTrack(this, doingShadows);
 #endif
+
+	int splineType = tw->splineBrowser->value() - 1;
+	static size_t frame = 0;
+	frame += (int)tw->speed->value() <= 0 ? 1 : (int)tw->speed->value();
+	if (frame >= m_pTrack->points.size() * DIVIDE_LINES) frame -= m_pTrack->points.size() * DIVIDE_LINES;
+
+	static float g[12];
+	static float mt[4];
+	static float m[16] = {
+		-1/6.0, 3/6.0, -3/6.0, 1/6.0,
+		3/6.0, -6/6.0, 0.0, 4/6.0,
+		-3/6.0, 3/6.0, 3/6.0, 1/6.0,
+		1/6.0, 0.0, 0.0, 0.0
+	};
+	static float o[12];
+
+	static Pnt3f trainViewEye, trainViewTarget, trainViewOrient;
+	if (tw->trainCam->value() && doingShadows) {
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		gluPerspective(120, 1, 1, 200);
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+		gluLookAt(trainViewEye.x, trainViewEye.y + 10, trainViewEye.z,
+			trainViewTarget.x, trainViewTarget.y + 10, trainViewTarget.z,
+			trainViewOrient.x, trainViewOrient.y, trainViewOrient.z);	
+		float pm[16], mm[16]; // projection matrix and modelview matrix
+		glGetFloatv(GL_PROJECTION_MATRIX, pm);
+		glGetFloatv(GL_MODELVIEW_MATRIX, mm);
+		for (int s = 0; s < sizeof(pm) / sizeof(float); ++s) {
+			std::cout << pm[s] << " ";
+		}
+		std::cout << "\n";
+		for (int s = 0; s < sizeof(mm) / sizeof(float); ++s) {
+			std::cout << mm[s] << " ";
+		}
+		std::cout << "\n";
+	}
+
+	Pnt3f qt, qt0, qt1;
+	int size = m_pTrack->points.size();
+	for (size_t i = 0; i < size; ++i) {
+		// std::cout << "stick" << i << ":" << m_pTrack->points[i].pos.x << "," << m_pTrack->points[i].pos.y << "," << m_pTrack->points[i].pos.z << "\n";
+		// pos
+		Pnt3f cpPosP1 = m_pTrack->points[i].pos;
+		Pnt3f cpPosP2 = m_pTrack->points[(i+1) % (m_pTrack->points.size())].pos;
+		
+		// orient
+		Pnt3f cpOrientP1 = m_pTrack->points[i].orient;
+		Pnt3f cpOrientP2 = m_pTrack->points[(i+1) % (m_pTrack->points.size())].orient;
+
+		float percent = 1.0f / DIVIDE_LINES;
+		float t = 0;
+		Pnt3f temp;
+		int index = 0;
+
+		if (splineType == SplineLinear) {
+			qt = (1 - t) * cpPosP1 + t * cpPosP2;
+		} else if (splineType == SplineCardinalCubic) {
+
+		} else if (splineType == SplineCubicBSpline) {
+			// std::cout << "init \n";
+			for (int j = -1; j < 3; ++j) {
+				int index = i + j;
+				if (index < 0) index += size;
+				else if (index >= size) index -= size;
+
+				g[j + 1] = m_pTrack->points[index].pos.x;
+				g[4 + (j + 1)] = m_pTrack->points[index].pos.y;
+				g[8 + (j + 1)] = m_pTrack->points[index].pos.z;
+
+				mt[j + 1] = pow(t, 3 - (1 + j));
+			}
+
+			// multiplication
+			int gmSize;
+			float* gm = multiply(g, m, 3, 4, 4, 4, &gmSize);
+			int gmtSize;
+			float* gmt = multiply(gm, mt, 4, 4, 4, 1, &gmtSize);
+			
+			// std::cout << "g \n";
+			// for (int j = 0; j < sizeof(g)/sizeof(float); ++j) {
+			// 	std::cout << g[j] << ",";
+			// }
+			// std::cout << "end g\n";
+			// std::cout << "m \n";
+			// for (int j = 0; j < sizeof(m)/sizeof(float); ++j) {
+			// 	std::cout << m[j] << ",";
+			// }
+			// std::cout << "end m\n";
+			// std::cout << "t \n";
+			// for (int j = 0; j < sizeof(mt)/sizeof(float); ++j) {
+			// 	std::cout << mt[j] << ",";
+			// }
+			// std::cout << "end t\n";
+			// std::cout << "gmt \n";
+			// for (int j = 0; j < gmtSize; ++j) {
+			// 	std::cout << gmt[j] << ",";
+			// }
+			// std::cout << "end gmt\n";
+			qt.x = gmt[0];
+			qt.y = gmt[1];
+			qt.z = gmt[2];
+		}
+
+		for (size_t j = 0; j < DIVIDE_LINES; ++j) {
+			// line from (qt0 -> qt1)
+			qt0 = qt;
+			t += percent;
+			if (splineType == SplineLinear) {
+				qt = (1 - t) * cpPosP1 + t * cpPosP2;
+			} else if (splineType == SplineCardinalCubic) {
+
+			} else if (splineType == SplineCubicBSpline) {
+				// std::cout << "first \n";
+				for (int k = -1; k < 3; ++k) {
+					int index = i + k;
+					if (index < 0) index += size;
+					else if (index >= size) index -= size;
+
+					g[(k + 1)] = m_pTrack->points[index].pos.x;
+					g[(k + 1) + 4] = m_pTrack->points[index].pos.y;
+					g[(k + 1) + 8] = m_pTrack->points[index].pos.z;
+
+					mt[k + 1] = pow(t, 3 - (1 + k));
+				}
+
+				// multiplication
+				int gmSize;
+				float* gm = multiply(g, m, 3, 4, 4, 4, &gmSize);
+				int gmtSize;
+				float* gmt = multiply(gm, mt, 4, 4, 4, 1, &gmtSize);
+				// std::cout << "\n";
+				// for (int k = 0; k < gmtSize; ++k) {
+				// 	std::cout << gmt[k] << ",";
+				// }
+				// std::cout << "\n";
+				qt.x = gmt[0];
+				qt.y = gmt[1];
+				qt.z = gmt[2];
+			}
+			qt1 = qt;
+
+			// // draw
+			// * single middle line
+			// glLineWidth(3);
+			// glBegin(GL_LINES);
+			// if (!doingShadows) {
+			// 	glColor3ub(32, 32, 64);
+			// }
+			// glVertex3f(qt0.x, qt0.y, qt0.z);
+			// glVertex3f(qt1.x, qt1.y, qt1.z);
+			// glEnd();
+			// glLineWidth(1);
+
+			// cross
+			Pnt3f orientT;
+			if (splineType == SplineLinear) {
+				orientT = (1 - t) * cpOrientP1 + t * cpOrientP2;
+			} else if (splineType == SplineCardinalCubic) {
+
+			} else if (splineType == SplineCubicBSpline) {
+				// std::cout << "second \n";
+				for (int k = -1; k < 3; ++k) {
+					int index = i + k;
+					if (index < 0) index += size;
+					else if (index >= size) index -= size;
+
+					g[(k + 1)] = m_pTrack->points[index].orient.x;
+					g[(k + 1) + 4] = m_pTrack->points[index].orient.y;
+					g[(k + 1) + 8] = m_pTrack->points[index].orient.z;
+
+					mt[k + 1] = pow(t, 3 - (1 + k));
+				}
+
+				// multiplication
+				int gmSize;
+				float* gm = multiply(g, m, 3, 4, 4, 4, &gmSize);
+				int gmtSize;
+				float* gmt = multiply(gm, mt, 4, 4, 4, 1, &gmtSize);
+				// std::cout << "\n";
+				// for (int k = 0; k < gmtSize; ++k) {
+				// 	std::cout << gmt[k] << ",";
+				// }
+				// std::cout << "\n";
+				orientT.x = gmt[0];
+				orientT.y = gmt[1];
+				orientT.z = gmt[2];
+			}
+			orientT.normalize();
+			Pnt3f crossT = (qt1 - qt0) * orientT;
+			crossT.normalize();
+			crossT *= 2.5f;
+
+			// draw
+			glLineWidth(3);
+			glBegin(GL_LINES);
+			if (!doingShadows) {
+				glColor3ub(32, 32, 64);
+			}
+
+			// lines with cross
+			// line1
+			glVertex3f(qt0.x + crossT.x, qt0.y + crossT.y, qt0.z + crossT.z);
+			glVertex3f(qt1.x + crossT.x, qt1.y + crossT.y, qt1.z + crossT.z);
+
+			// line2
+			glVertex3f(qt0.x - crossT.x, qt0.y - crossT.y, qt0.z - crossT.z);
+			glVertex3f(qt1.x - crossT.x, qt1.y - crossT.y, qt1.z - crossT.z);
+			glEnd();
+			glLineWidth(1);
+
+			if ((j / 10) % 2) {
+				crossT *= 2.0f;
+				glBegin(GL_QUADS);
+				if (!doingShadows) {
+					glColor3ub(255, 255, 255);
+				}
+				// line1
+				glVertex3f(qt0.x + crossT.x, qt0.y + crossT.y, qt0.z + crossT.z);
+				glVertex3f(qt1.x + crossT.x, qt1.y + crossT.y, qt1.z + crossT.z);
+
+				// line2
+				glVertex3f(qt1.x - crossT.x, qt1.y - crossT.y, qt1.z - crossT.z);
+				glVertex3f(qt0.x - crossT.x, qt0.y - crossT.y, qt0.z - crossT.z);
+				glEnd();
+			}
+
+			if (frame == (i * DIVIDE_LINES) + j) {
+				if (!tw->trainCam->value()) {
+					glBegin(GL_QUADS);
+					if (!doingShadows) {
+						glColor3ub(255, 255, 255);	
+					}
+					glTexCoord2f(0.0f, 0.0f);
+					glVertex3f(qt.x - 5, qt.y - 5, qt.z - 5);
+					glTexCoord2f(1.0f, 0.0f);
+					glVertex3f(qt.x + 5, qt.y - 5, qt.z - 5);
+					glTexCoord2f(1.0f, 1.0f);
+					glVertex3f(qt.x + 5, qt.y + 5, qt.z - 5);
+					glTexCoord2f(0.0f, 1.0f);
+					glVertex3f(qt.x - 5, qt.y + 5, qt.z - 5);
+					glEnd();
+				} else {
+					trainViewEye = qt0; trainViewTarget = qt1; trainViewOrient = orientT;
+					lookatParam[0] = qt0; lookatParam[1] = qt1; lookatParam[2] = orientT;
+					// std::cout << trainViewEye.x << "," << trainViewEye.y << "," << trainViewEye.z << "\n";
+					// std::cout << trainViewTarget.x << "," << trainViewTarget.y << "," << trainViewTarget.z << "\n";
+					// std::cout << trainViewOrient.x << "," << trainViewOrient.y << "," << trainViewOrient.z << "\n";
+// 					if (!doingShadows) {
+// 						glMatrixMode(GL_PROJECTION);
+// 						glLoadIdentity();
+// 						gluPerspective(120, 1, 1, 200);
+// 						glMatrixMode(GL_MODELVIEW);
+// 						glLoadIdentity();
+// 						gluLookAt(qt0.x, qt0.y + 10, qt0.z,
+// 							qt1.x, qt1.y + 10, qt1.z,
+// 							orientT.x, orientT.y, orientT.z);
+						
+// 0.57735 0 0 0 0 0.57735 0 0 0 0 -1.01005 -1 -0 -0 -2.01005 -0 
+// -0.707107 0 0.707106 0 0 1 0 0 -0.707106 0 -0.707107 0 35.3554 -15 -30.4056 1 
+
+
+// 0.57735 0 0 0 0 0.57735 0 0 0 0 -1.01005 -1 -0 -0 -2.01005 -0 
+// -0.707107 0 0.707106 0 0 1 0 0 -0.707106 0 -0.707107 0 35.3554 -15 -30.4056 1 
+// 					}
+
+
+// 0.57735 0 0 0 0 0.57735 0 0 0 0 -1.01005 -1 -0 -0 -2.01005 -0 
+// -0.707107 0 0.707106 0 0 1 0 0 -0.707106 0 -0.707107 0 35.3554 -15 -30.4056 1 
+				}
+			}
+		}
+	}
 
 	// draw the train
 	//####################################################################
@@ -403,8 +676,8 @@ doPick()
 	make_current();		
 
 	// where is the mouse?
-	int mx = Fl::event_x(); 
-	int my = Fl::event_y();
+	int mx = 2 * Fl::event_x(); 
+	int my = 2 * Fl::event_y();
 
 	// get the viewport - most reliable way to turn mouse coords into GL coords
 	int viewport[4];
