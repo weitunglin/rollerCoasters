@@ -26,10 +26,12 @@
 
 #pragma once
 #include <iostream>
+#include <vector>
 
 // Preclarify for preventing the compiler error
 class TrainWindow;
 class CTrack;
+class Pnt3f;
 
 
 //#######################################################################
@@ -65,6 +67,9 @@ class TrainView : public Fl_Gl_Window
 	public:
 		// note that we keep the "standard widget" constructor arguments
 		TrainView(int x, int y, int w, int h, const char* l = 0);
+		~TrainView() {
+			delete[] trainParams;
+		}
 
 		// overrides of important window things
 		virtual int handle(int);
@@ -120,6 +125,8 @@ class TrainView : public Fl_Gl_Window
 			return result;
 		}
 
+		void getCurve(int i, const int& size, float* g, float* m, float* t, float time, Pnt3f& qt);
+
 	public:
 		ArcBallCam		arcball;			// keep an ArcBall for the UI
 		int				selectedCube;  // simple - just remember which cube is selected
@@ -127,5 +134,6 @@ class TrainView : public Fl_Gl_Window
 		TrainWindow*	tw;				// The parent of this display window
 		CTrack*			m_pTrack;		// The track of the entire scene
 
-		Pnt3f lookatParam[3];
+		Pnt3f* trainParams;
+
 };

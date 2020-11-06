@@ -55,6 +55,16 @@ TrainView(int x, int y, int w, int h, const char* l)
 	mode( FL_RGB|FL_ALPHA|FL_DOUBLE | FL_STENCIL );
 
 	resetArcball();
+	
+	trainParams = new Pnt3f[3];
+	for (int i = 0; i < 3; ++i) {
+		trainParams[i] = Pnt3f();
+	}
+
+	// g = new float[12];
+	// memset(g, 0.0f, 12);
+	// mt = new float[4];
+	// memset(mt, 0.0f, 4);
 }
 
 //************************************************************************
@@ -325,10 +335,64 @@ setProjection()
 	// put code for train view projection here!	
 	//####################################################################
 	else {
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		gluPerspective(120, aspect, 1, 200);
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+		gluLookAt(trainParams[0].x, trainParams[0].y + 5, trainParams[0].z,
+			trainParams[1].x, trainParams[1].y + 5, trainParams[1].z,
+			trainParams[2].x, trainParams[2].y, trainParams[2].z);
+
 #ifdef EXAMPLE_SOLUTION
 		trainCamView(this,aspect);
 #endif
 	}
+}
+
+void TrainView::getCurve(int i, const int& size, float* g, float* m, float* t, float time, Pnt3f& qt) {
+	for (int j = -1; j < 3; ++j) {
+		int index = i + j;
+		if (index < 0) index += size;
+		else if (index >= size) index -= size;
+
+		g[j + 1] = m_pTrack->points[index].pos.x;
+		g[4 + (j + 1)] = m_pTrack->points[index].pos.y;
+		g[8 + (j + 1)] = m_pTrack->points[index].pos.z;
+
+		m[j + 1] = pow(time, 3 - (1 + j));
+	}
+
+	// multiplication
+	int mSize;
+	float* gm = multiply(g, m, 3, 4, 4, 4, &mSize);
+	float* gmt = multiply(gm, t, 4, 4, 4, 1, &mSize);
+
+	#ifdef _DEBUG
+	std::cout << "g \n";
+	for (int j = 0; j < sizeof(g)/sizeof(float); ++j) {
+		std::cout << g[j] << ",";
+	}
+	std::cout << "end g\n";
+	std::cout << "m \n";
+	for (int j = 0; j < sizeof(m)/sizeof(float); ++j) {
+		std::cout << m[j] << ",";
+	}
+	std::cout << "end m\n";
+	std::cout << "t \n";
+	for (int j = 0; j < sizeof(t)/sizeof(float); ++j) {
+		std::cout << t[j] << ",";
+	}
+	std::cout << "end t\n";
+	std::cout << "gmt \n";
+	for (int j = 0; j < sizeof(gmt)/sizeof(float); ++j) {
+		std::cout << gmt[j] << ",";
+	}
+	std::cout << "end gmt\n";
+	#endif
+	qt.x = gmt[0];
+	qt.y = gmt[1];
+	qt.z = gmt[2];
 }
 
 //************************************************************************
@@ -348,7 +412,7 @@ void TrainView::drawStuff(bool doingShadows)
 	// Draw the control points
 	// don't draw the control points if you're driving 
 	// (otherwise you get sea-sick as you drive through them)
-	// if (!tw->trainCam->value()) {
+	if (!tw->trainCam->value()) {
 		for(size_t i=0; i<m_pTrack->points.size(); ++i) {
 			if (!doingShadows) {
 				if ( ((int) i) != selectedCube)
@@ -358,7 +422,8 @@ void TrainView::drawStuff(bool doingShadows)
 			}
 			m_pTrack->points[i].draw();
 		}
-	// }
+	}
+
 	// draw the track
 	//####################################################################
 	// TODO: 
@@ -382,35 +447,10 @@ void TrainView::drawStuff(bool doingShadows)
 		-3/6.0, 3/6.0, 3/6.0, 1/6.0,
 		1/6.0, 0.0, 0.0, 0.0
 	};
-	static float o[12];
-
-	static Pnt3f trainViewEye, trainViewTarget, trainViewOrient;
-	if (tw->trainCam->value() && doingShadows) {
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		gluPerspective(120, 1, 1, 200);
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-		gluLookAt(trainViewEye.x, trainViewEye.y + 10, trainViewEye.z,
-			trainViewTarget.x, trainViewTarget.y + 10, trainViewTarget.z,
-			trainViewOrient.x, trainViewOrient.y, trainViewOrient.z);	
-		float pm[16], mm[16]; // projection matrix and modelview matrix
-		glGetFloatv(GL_PROJECTION_MATRIX, pm);
-		glGetFloatv(GL_MODELVIEW_MATRIX, mm);
-		for (int s = 0; s < sizeof(pm) / sizeof(float); ++s) {
-			std::cout << pm[s] << " ";
-		}
-		std::cout << "\n";
-		for (int s = 0; s < sizeof(mm) / sizeof(float); ++s) {
-			std::cout << mm[s] << " ";
-		}
-		std::cout << "\n";
-	}
 
 	Pnt3f qt, qt0, qt1;
 	int size = m_pTrack->points.size();
 	for (size_t i = 0; i < size; ++i) {
-		// std::cout << "stick" << i << ":" << m_pTrack->points[i].pos.x << "," << m_pTrack->points[i].pos.y << "," << m_pTrack->points[i].pos.z << "\n";
 		// pos
 		Pnt3f cpPosP1 = m_pTrack->points[i].pos;
 		Pnt3f cpPosP2 = m_pTrack->points[(i+1) % (m_pTrack->points.size())].pos;
@@ -421,15 +461,13 @@ void TrainView::drawStuff(bool doingShadows)
 
 		float percent = 1.0f / DIVIDE_LINES;
 		float t = 0;
-		Pnt3f temp;
-		int index = 0;
 
 		if (splineType == SplineLinear) {
 			qt = (1 - t) * cpPosP1 + t * cpPosP2;
 		} else if (splineType == SplineCardinalCubic) {
 
 		} else if (splineType == SplineCubicBSpline) {
-			// std::cout << "init \n";
+			// getCurve((int)i, size, g, m, mt, t, qt);
 			for (int j = -1; j < 3; ++j) {
 				int index = i + j;
 				if (index < 0) index += size;
@@ -443,31 +481,31 @@ void TrainView::drawStuff(bool doingShadows)
 			}
 
 			// multiplication
-			int gmSize;
-			float* gm = multiply(g, m, 3, 4, 4, 4, &gmSize);
-			int gmtSize;
-			float* gmt = multiply(gm, mt, 4, 4, 4, 1, &gmtSize);
-			
-			// std::cout << "g \n";
-			// for (int j = 0; j < sizeof(g)/sizeof(float); ++j) {
-			// 	std::cout << g[j] << ",";
-			// }
-			// std::cout << "end g\n";
-			// std::cout << "m \n";
-			// for (int j = 0; j < sizeof(m)/sizeof(float); ++j) {
-			// 	std::cout << m[j] << ",";
-			// }
-			// std::cout << "end m\n";
-			// std::cout << "t \n";
-			// for (int j = 0; j < sizeof(mt)/sizeof(float); ++j) {
-			// 	std::cout << mt[j] << ",";
-			// }
-			// std::cout << "end t\n";
-			// std::cout << "gmt \n";
-			// for (int j = 0; j < gmtSize; ++j) {
-			// 	std::cout << gmt[j] << ",";
-			// }
-			// std::cout << "end gmt\n";
+			int mSize;
+			float* gm = multiply(g, m, 3, 4, 4, 4, &mSize);
+			float* gmt = multiply(gm, mt, 4, 4, 4, 1, &mSize);
+			#ifdef _DEBUG
+			std::cout << "g \n";
+			for (int j = 0; j < sizeof(g)/sizeof(float); ++j) {
+				std::cout << g[j] << ",";
+			}
+			std::cout << "end g\n";
+			std::cout << "m \n";
+			for (int j = 0; j < sizeof(m)/sizeof(float); ++j) {
+				std::cout << m[j] << ",";
+			}
+			std::cout << "end m\n";
+			std::cout << "t \n";
+			for (int j = 0; j < sizeof(mt)/sizeof(float); ++j) {
+				std::cout << mt[j] << ",";
+			}
+			std::cout << "end t\n";
+			std::cout << "gmt \n";
+			for (int j = 0; j < sizeof(gmt)/sizeof(float); ++j) {
+				std::cout << gmt[j] << ",";
+			}
+			std::cout << "end gmt\n";
+			#endif
 			qt.x = gmt[0];
 			qt.y = gmt[1];
 			qt.z = gmt[2];
@@ -482,7 +520,6 @@ void TrainView::drawStuff(bool doingShadows)
 			} else if (splineType == SplineCardinalCubic) {
 
 			} else if (splineType == SplineCubicBSpline) {
-				// std::cout << "first \n";
 				for (int k = -1; k < 3; ++k) {
 					int index = i + k;
 					if (index < 0) index += size;
@@ -500,11 +537,7 @@ void TrainView::drawStuff(bool doingShadows)
 				float* gm = multiply(g, m, 3, 4, 4, 4, &gmSize);
 				int gmtSize;
 				float* gmt = multiply(gm, mt, 4, 4, 4, 1, &gmtSize);
-				// std::cout << "\n";
-				// for (int k = 0; k < gmtSize; ++k) {
-				// 	std::cout << gmt[k] << ",";
-				// }
-				// std::cout << "\n";
+
 				qt.x = gmt[0];
 				qt.y = gmt[1];
 				qt.z = gmt[2];
@@ -513,6 +546,7 @@ void TrainView::drawStuff(bool doingShadows)
 
 			// // draw
 			// * single middle line
+			// * not used anymore
 			// glLineWidth(3);
 			// glBegin(GL_LINES);
 			// if (!doingShadows) {
@@ -548,11 +582,7 @@ void TrainView::drawStuff(bool doingShadows)
 				float* gm = multiply(g, m, 3, 4, 4, 4, &gmSize);
 				int gmtSize;
 				float* gmt = multiply(gm, mt, 4, 4, 4, 1, &gmtSize);
-				// std::cout << "\n";
-				// for (int k = 0; k < gmtSize; ++k) {
-				// 	std::cout << gmt[k] << ",";
-				// }
-				// std::cout << "\n";
+
 				orientT.x = gmt[0];
 				orientT.y = gmt[1];
 				orientT.z = gmt[2];
@@ -612,32 +642,7 @@ void TrainView::drawStuff(bool doingShadows)
 					glVertex3f(qt.x - 5, qt.y + 5, qt.z - 5);
 					glEnd();
 				} else {
-					trainViewEye = qt0; trainViewTarget = qt1; trainViewOrient = orientT;
-					lookatParam[0] = qt0; lookatParam[1] = qt1; lookatParam[2] = orientT;
-					// std::cout << trainViewEye.x << "," << trainViewEye.y << "," << trainViewEye.z << "\n";
-					// std::cout << trainViewTarget.x << "," << trainViewTarget.y << "," << trainViewTarget.z << "\n";
-					// std::cout << trainViewOrient.x << "," << trainViewOrient.y << "," << trainViewOrient.z << "\n";
-// 					if (!doingShadows) {
-// 						glMatrixMode(GL_PROJECTION);
-// 						glLoadIdentity();
-// 						gluPerspective(120, 1, 1, 200);
-// 						glMatrixMode(GL_MODELVIEW);
-// 						glLoadIdentity();
-// 						gluLookAt(qt0.x, qt0.y + 10, qt0.z,
-// 							qt1.x, qt1.y + 10, qt1.z,
-// 							orientT.x, orientT.y, orientT.z);
-						
-// 0.57735 0 0 0 0 0.57735 0 0 0 0 -1.01005 -1 -0 -0 -2.01005 -0 
-// -0.707107 0 0.707106 0 0 1 0 0 -0.707106 0 -0.707107 0 35.3554 -15 -30.4056 1 
-
-
-// 0.57735 0 0 0 0 0.57735 0 0 0 0 -1.01005 -1 -0 -0 -2.01005 -0 
-// -0.707107 0 0.707106 0 0 1 0 0 -0.707106 0 -0.707107 0 35.3554 -15 -30.4056 1 
-// 					}
-
-
-// 0.57735 0 0 0 0 0.57735 0 0 0 0 -1.01005 -1 -0 -0 -2.01005 -0 
-// -0.707107 0 0.707106 0 0 1 0 0 -0.707106 0 -0.707107 0 35.3554 -15 -30.4056 1 
+					trainParams[0] = qt0; trainParams[1] = qt1; trainParams[2] = orientT;
 				}
 			}
 		}
