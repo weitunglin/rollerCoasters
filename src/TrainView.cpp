@@ -42,6 +42,8 @@
 #	include "TrainExample/TrainExample.H"
 #endif
 
+#define _DEBUG 0
+
 
 //************************************************************************
 //
@@ -441,11 +443,17 @@ void TrainView::drawStuff(bool doingShadows)
 
 	static float g[12];
 	static float mt[4];
-	static float m[16] = {
+	static float mBSpline[16] = {
 		-1/6.0, 3/6.0, -3/6.0, 1/6.0,
 		3/6.0, -6/6.0, 0.0, 4/6.0,
 		-3/6.0, 3/6.0, 3/6.0, 1/6.0,
 		1/6.0, 0.0, 0.0, 0.0
+	};
+	static float mCardinal[16] = {
+		-1/2.0, 2/2.0, -1/2.0, 0.0,
+		3/2.0, -5/2.0, 0.0, 2/2.0,
+		-3/2.0, 4/2.0, 1/2.0, 0.0,
+		1/2.0, -1/2.0, 0.0, 0.0
 	};
 
 	Pnt3f qt, qt0, qt1;
@@ -465,7 +473,25 @@ void TrainView::drawStuff(bool doingShadows)
 		if (splineType == SplineLinear) {
 			qt = (1 - t) * cpPosP1 + t * cpPosP2;
 		} else if (splineType == SplineCardinalCubic) {
+			for (int j = -1; j < 3; ++j) {
+				int index = i + j;
+				if (index < 0) index += size;
+				else if (index >= size) index -= size;
 
+				g[j + 1] = m_pTrack->points[index].pos.x;
+				g[4 + (j + 1)] = m_pTrack->points[index].pos.y;
+				g[8 + (j + 1)] = m_pTrack->points[index].pos.z;
+
+				mt[j + 1] = pow(t, 3 - (1 + j));
+			}
+
+			// multiplication
+			int mSize;
+			float* gm = multiply(g, mCardinal, 3, 4, 4, 4, &mSize);
+			float* gmt = multiply(gm, mt, 4, 4, 4, 1, &mSize);
+			qt.x = gmt[0];
+			qt.y = gmt[1];
+			qt.z = gmt[2];
 		} else if (splineType == SplineCubicBSpline) {
 			// getCurve((int)i, size, g, m, mt, t, qt);
 			for (int j = -1; j < 3; ++j) {
@@ -482,30 +508,8 @@ void TrainView::drawStuff(bool doingShadows)
 
 			// multiplication
 			int mSize;
-			float* gm = multiply(g, m, 3, 4, 4, 4, &mSize);
+			float* gm = multiply(g, mBSpline, 3, 4, 4, 4, &mSize);
 			float* gmt = multiply(gm, mt, 4, 4, 4, 1, &mSize);
-			#ifdef _DEBUG
-			std::cout << "g \n";
-			for (int j = 0; j < sizeof(g)/sizeof(float); ++j) {
-				std::cout << g[j] << ",";
-			}
-			std::cout << "end g\n";
-			std::cout << "m \n";
-			for (int j = 0; j < sizeof(m)/sizeof(float); ++j) {
-				std::cout << m[j] << ",";
-			}
-			std::cout << "end m\n";
-			std::cout << "t \n";
-			for (int j = 0; j < sizeof(mt)/sizeof(float); ++j) {
-				std::cout << mt[j] << ",";
-			}
-			std::cout << "end t\n";
-			std::cout << "gmt \n";
-			for (int j = 0; j < sizeof(gmt)/sizeof(float); ++j) {
-				std::cout << gmt[j] << ",";
-			}
-			std::cout << "end gmt\n";
-			#endif
 			qt.x = gmt[0];
 			qt.y = gmt[1];
 			qt.z = gmt[2];
@@ -518,7 +522,25 @@ void TrainView::drawStuff(bool doingShadows)
 			if (splineType == SplineLinear) {
 				qt = (1 - t) * cpPosP1 + t * cpPosP2;
 			} else if (splineType == SplineCardinalCubic) {
+				for (int j = -1; j < 3; ++j) {
+					int index = i + j;
+					if (index < 0) index += size;
+					else if (index >= size) index -= size;
 
+					g[j + 1] = m_pTrack->points[index].pos.x;
+					g[4 + (j + 1)] = m_pTrack->points[index].pos.y;
+					g[8 + (j + 1)] = m_pTrack->points[index].pos.z;
+
+					mt[j + 1] = pow(t, 3 - (1 + j));
+				}
+
+				// multiplication
+				int mSize;
+				float* gm = multiply(g, mCardinal, 3, 4, 4, 4, &mSize);
+				float* gmt = multiply(gm, mt, 4, 4, 4, 1, &mSize);
+				qt.x = gmt[0];
+				qt.y = gmt[1];
+				qt.z = gmt[2];
 			} else if (splineType == SplineCubicBSpline) {
 				for (int k = -1; k < 3; ++k) {
 					int index = i + k;
@@ -534,7 +556,7 @@ void TrainView::drawStuff(bool doingShadows)
 
 				// multiplication
 				int gmSize;
-				float* gm = multiply(g, m, 3, 4, 4, 4, &gmSize);
+				float* gm = multiply(g, mBSpline, 3, 4, 4, 4, &gmSize);
 				int gmtSize;
 				float* gmt = multiply(gm, mt, 4, 4, 4, 1, &gmtSize);
 
@@ -562,9 +584,6 @@ void TrainView::drawStuff(bool doingShadows)
 			if (splineType == SplineLinear) {
 				orientT = (1 - t) * cpOrientP1 + t * cpOrientP2;
 			} else if (splineType == SplineCardinalCubic) {
-
-			} else if (splineType == SplineCubicBSpline) {
-				// std::cout << "second \n";
 				for (int k = -1; k < 3; ++k) {
 					int index = i + k;
 					if (index < 0) index += size;
@@ -579,7 +598,29 @@ void TrainView::drawStuff(bool doingShadows)
 
 				// multiplication
 				int gmSize;
-				float* gm = multiply(g, m, 3, 4, 4, 4, &gmSize);
+				float* gm = multiply(g, mCardinal, 3, 4, 4, 4, &gmSize);
+				int gmtSize;
+				float* gmt = multiply(gm, mt, 4, 4, 4, 1, &gmtSize);
+
+				orientT.x = gmt[0];
+				orientT.y = gmt[1];
+				orientT.z = gmt[2];
+			} else if (splineType == SplineCubicBSpline) {
+				for (int k = -1; k < 3; ++k) {
+					int index = i + k;
+					if (index < 0) index += size;
+					else if (index >= size) index -= size;
+
+					g[(k + 1)] = m_pTrack->points[index].orient.x;
+					g[(k + 1) + 4] = m_pTrack->points[index].orient.y;
+					g[(k + 1) + 8] = m_pTrack->points[index].orient.z;
+
+					mt[k + 1] = pow(t, 3 - (1 + k));
+				}
+
+				// multiplication
+				int gmSize;
+				float* gm = multiply(g, mBSpline, 3, 4, 4, 4, &gmSize);
 				int gmtSize;
 				float* gmt = multiply(gm, mt, 4, 4, 4, 1, &gmtSize);
 
@@ -592,18 +633,16 @@ void TrainView::drawStuff(bool doingShadows)
 			crossT.normalize();
 			crossT *= 2.5f;
 
+			// * lines with cross
 			// draw
 			glLineWidth(3);
 			glBegin(GL_LINES);
 			if (!doingShadows) {
 				glColor3ub(32, 32, 64);
 			}
-
-			// lines with cross
 			// line1
 			glVertex3f(qt0.x + crossT.x, qt0.y + crossT.y, qt0.z + crossT.z);
 			glVertex3f(qt1.x + crossT.x, qt1.y + crossT.y, qt1.z + crossT.z);
-
 			// line2
 			glVertex3f(qt0.x - crossT.x, qt0.y - crossT.y, qt0.z - crossT.z);
 			glVertex3f(qt1.x - crossT.x, qt1.y - crossT.y, qt1.z - crossT.z);
@@ -611,6 +650,7 @@ void TrainView::drawStuff(bool doingShadows)
 			glLineWidth(1);
 
 			if ((j / 10) % 2) {
+				// * sleeps
 				crossT *= 2.0f;
 				glBegin(GL_QUADS);
 				if (!doingShadows) {
@@ -642,6 +682,7 @@ void TrainView::drawStuff(bool doingShadows)
 					glVertex3f(qt.x - 5, qt.y + 5, qt.z - 5);
 					glEnd();
 				} else {
+					// setup params for projection
 					trainParams[0] = qt0; trainParams[1] = qt1; trainParams[2] = orientT;
 				}
 			}
