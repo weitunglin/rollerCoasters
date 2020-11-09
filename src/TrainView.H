@@ -90,6 +90,8 @@ class TrainView : public Fl_Gl_Window
 		// pick a point (for when the mouse goes down)
 		void doPick();
 
+		void draw_cube(bool doingShadows);
+
 		float* multiply(float* m, float* n, int m1, int m2, int n1, int n2, int* size) {
 			float* result = (float*) malloc(sizeof(float) * (m1 * n2));
 

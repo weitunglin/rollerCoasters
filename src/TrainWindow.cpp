@@ -114,6 +114,31 @@ TrainWindow(const int x, const int y)
 
 		pty += 110;
 
+				// camera buttons - in a radio button group
+		Fl_Group* lightGroup = new Fl_Group(600,pty,195,20);
+		lightGroup->begin();
+		dirLight = new Fl_Button(605, pty, 80, 20, "Directional");
+        dirLight->type(FL_RADIO_BUTTON);		// radio button
+        dirLight->value(1);			// turned on
+        dirLight->selection_color((Fl_Color)3); // yellow when pressed
+		dirLight->callback((Fl_Callback*)damageCB,this);
+		// togglify(dirLight);
+		posLight = new Fl_Button(690, pty, 50, 20, "Point");
+        posLight->type(FL_RADIO_BUTTON);
+        posLight->value(0);
+        posLight->selection_color((Fl_Color)3);
+		posLight->callback((Fl_Callback*)damageCB,this);
+		// togglify(posLight);
+		spotLight = new Fl_Button(745, pty, 50, 20, "Spot");
+        spotLight->type(FL_RADIO_BUTTON);
+        spotLight->value(0);
+        spotLight->selection_color((Fl_Color)3);
+		spotLight->callback((Fl_Callback*)damageCB,this);
+		// togglify(spotLight);
+		lightGroup->end();
+
+		pty += 30;
+
 		// add and delete points
 		Fl_Button* ap = new Fl_Button(605,pty,80,20,"Add Point");
 		ap->callback((Fl_Callback*)addPointCB,this);

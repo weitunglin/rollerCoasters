@@ -84,6 +84,10 @@ class TrainWindow : public Fl_Double_Window {
 		// the type of the spline (use its value to determine)
 		Fl_Browser*			splineBrowser;
 
+		Fl_Button* dirLight;
+		Fl_Button* posLight;
+		Fl_Button* spotLight;
+
 		// are we animating the train?
 		Fl_Button*			runButton;
 		// if we're animating it, how fast should it go?

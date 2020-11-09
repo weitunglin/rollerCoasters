@@ -231,41 +231,88 @@ void TrainView::draw()
 	glEnable(GL_COLOR_MATERIAL);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
+	// glEnable(GL_LIGHT0);
+	glDisable(GL_LIGHT0);
+	glDisable(GL_LIGHT1);
+	glDisable(GL_LIGHT2);
 
 	// top view only needs one light
 	if (tw->topCam->value()) {
 		glDisable(GL_LIGHT1);
 		glDisable(GL_LIGHT2);
+		glDisable(GL_LIGHT3);
+		glDisable(GL_LIGHT4);
+		glDisable(GL_LIGHT5);
 	} else {
-		glEnable(GL_LIGHT1);
-		glEnable(GL_LIGHT2);
+		// glEnable(GL_LIGHT3);
+		// glEnable(GL_LIGHT4);
 	}
+
+
+	glDisable(GL_LIGHT3);
+	glDisable(GL_LIGHT4);
+	glDisable(GL_LIGHT5);
 
 	//*********************************************************************
 	//
 	// * set the light parameters
 	//
 	//**********************************************************************
-	GLfloat lightPosition1[]	= {0,1,1,0}; // {50, 200.0, 50, 1.0};
-	GLfloat lightPosition2[]	= {1, 0, 0, 0};
-	GLfloat lightPosition3[]	= {0, -1, 0, 0};
-	GLfloat yellowLight[]		= {0.5f, 0.5f, .1f, 1.0};
-	GLfloat whiteLight[]			= {1.0f, 1.0f, 1.0f, 1.0};
-	GLfloat blueLight[]			= {.1f,.1f,.3f,1.0};
-	GLfloat grayLight[]			= {.3f, .3f, .3f, 1.0};
 
-	glLightfv(GL_LIGHT0, GL_POSITION, lightPosition1);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, whiteLight);
-	glLightfv(GL_LIGHT0, GL_AMBIENT, grayLight);
+	// glLightfv(GL_LIGHT0, GL_POSITION, lightPosition1);
+	// glLightfv(GL_LIGHT0, GL_DIFFUSE, whiteLight);
+	// glLightfv(GL_LIGHT0, GL_AMBIENT, grayLight);
 
-	glLightfv(GL_LIGHT1, GL_POSITION, lightPosition2);
-	glLightfv(GL_LIGHT1, GL_DIFFUSE, yellowLight);
+	// glLightfv(GL_LIGHT1, GL_POSITION, lightPosition2);
+	// glLightfv(GL_LIGHT1, GL_DIFFUSE, yellowLight);
 
-	glLightfv(GL_LIGHT2, GL_POSITION, lightPosition3);
-	glLightfv(GL_LIGHT2, GL_DIFFUSE, blueLight);
+	// glLightfv(GL_LIGHT2, GL_POSITION, lightPosition3);
+	// glLightfv(GL_LIGHT2, GL_DIFFUSE, blueLight);
 
+	if (tw->dirLight->value()) {
+		// * Directional Light
+		float light3NoAmbient[4] = {.0, .0, .0, 1.0};
+		float light3WhiteDiffuse[4] = {1.0, 0.0, 0.0, 1.0};
+		float light3Position[4] = {1.0, 1.0, 0.0, 0.0};
+		glLightfv(GL_LIGHT0, GL_AMBIENT, light3NoAmbient);
+		glLightfv(GL_LIGHT0, GL_DIFFUSE, light3WhiteDiffuse);
+		glLightfv(GL_LIGHT0, GL_POSITION, light3Position);
+		glEnable(GL_LIGHT0);
+	}
+	if (tw->posLight->value()) {
+		// * Point Light
+		glEnable(GL_LIGHT1);
+		float light4Ambient[4] = {0.1, 0.1, .0, 1.0};
+		float light4Diffuse[4] = {1.0, 1.0, .0, 1.0};
+		float light4Position[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+		glLightfv(GL_LIGHT1, GL_AMBIENT, light4Ambient);
+		glLightfv(GL_LIGHT1, GL_DIFFUSE, light4Diffuse);
+		glLightfv(GL_LIGHT1, GL_POSITION, light4Position);
+	}
+	if (tw->spotLight->value()) {
+		// * Spot Light
+		glEnable(GL_LIGHT2);
+		float ligth5NoAmbient[4] = {1.0, 1.0, .2, 1.0};
+		float light5Diffuse[4] = {1.0, 1.0, .0, 1.0};
+			// train position
+		float light5Position[4] = {trainParams[0].x, trainParams[0].y + 20, trainParams[0].z, 1.0f};
+		glLightfv(GL_LIGHT2, GL_AMBIENT, ligth5NoAmbient);
+		glLightfv(GL_LIGHT2, GL_DIFFUSE, light5Diffuse);
+		glLightfv(GL_LIGHT2, GL_POSITION, light5Position);
 
+			// train target - target position
+		Pnt3f forward = trainParams[1] - trainParams[0];
+		forward.normalize();
+		float light5Direction[4] = {forward.x, forward.y, forward.z, 0.0};
+		glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, light5Direction);
+		glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 60.0f);
+
+		glLightf(GL_LIGHT2, GL_SPOT_EXPONENT, 15.0f);
+
+		glLightf(GL_LIGHT2, GL_CONSTANT_ATTENUATION, 0.4f);
+		glLightf(GL_LIGHT2, GL_LINEAR_ATTENUATION, .0f);
+		glLightf(GL_LIGHT2, GL_QUADRATIC_ATTENUATION, .0f);
+	}
 
 	//*********************************************************************
 	// now draw the ground plane
@@ -274,7 +321,8 @@ void TrainView::draw()
 	glUseProgram(0);
 
 	setupFloor();
-	glDisable(GL_LIGHTING);
+	if (!tw->spotLight->value())
+		glDisable(GL_LIGHTING);
 	drawFloor(200,10);
 
 
@@ -438,8 +486,10 @@ void TrainView::drawStuff(bool doingShadows)
 
 	int splineType = tw->splineBrowser->value() - 1;
 	static size_t frame = 0;
-	frame += (int)tw->speed->value() <= 0 ? 1 : (int)tw->speed->value();
-	if (frame >= m_pTrack->points.size() * DIVIDE_LINES) frame -= m_pTrack->points.size() * DIVIDE_LINES;
+	if (!doingShadows) {
+		frame += (int)tw->speed->value() <= 0 ? 1 : (int)tw->speed->value();
+		if (frame >= m_pTrack->points.size() * DIVIDE_LINES) frame -= m_pTrack->points.size() * DIVIDE_LINES;
+	}
 
 	static float g[12];
 	static float mt[4];
@@ -668,23 +718,41 @@ void TrainView::drawStuff(bool doingShadows)
 
 			if (frame == (i * DIVIDE_LINES) + j) {
 				if (!tw->trainCam->value()) {
-					glBegin(GL_QUADS);
-					if (!doingShadows) {
-						glColor3ub(255, 255, 255);	
-					}
-					glTexCoord2f(0.0f, 0.0f);
-					glVertex3f(qt.x - 5, qt.y - 5, qt.z - 5);
-					glTexCoord2f(1.0f, 0.0f);
-					glVertex3f(qt.x + 5, qt.y - 5, qt.z - 5);
-					glTexCoord2f(1.0f, 1.0f);
-					glVertex3f(qt.x + 5, qt.y + 5, qt.z - 5);
-					glTexCoord2f(0.0f, 1.0f);
-					glVertex3f(qt.x - 5, qt.y + 5, qt.z - 5);
-					glEnd();
-				} else {
-					// setup params for projection
-					trainParams[0] = qt0; trainParams[1] = qt1; trainParams[2] = orientT;
+					// glBegin(GL_QUADS);
+					// if (!doingShadows) {
+					// 	glColor3ub(255, 255, 255);	
+					// }
+					// glTexCoord2f(0.0f, 0.0f);
+					// glVertex3f(qt.x - 5, qt.y - 5, qt.z - 5);
+					// glTexCoord2f(1.0f, 0.0f);
+					// glVertex3f(qt.x + 5, qt.y - 5, qt.z - 5);
+					// glTexCoord2f(1.0f, 1.0f);
+					// glVertex3f(qt.x + 5, qt.y + 5, qt.z - 5);
+					// glTexCoord2f(0.0f, 1.0f);
+					// glVertex3f(qt.x - 5, qt.y + 5, qt.z - 5);
+					// glEnd();
+
+					Pnt3f u = (qt1 - qt0); u.normalize();
+					Pnt3f w = u * orientT; w.normalize();
+					Pnt3f v = w * u; v.normalize();
+
+					float rotation[16] = {
+						u.x, u.y, u.z, 0.0,
+						v.x, v.y, v.z, 0.0,
+						w.x, w.y, w.z, 0.0,
+						0.0, 0.0, 0.0, 1.0
+					};
+
+					glPushMatrix();
+					glTranslatef(qt.x, qt.y, qt.z);
+					glMultMatrixf(rotation);
+					glScalef(5.0f, 5.0f, 5.0f);
+					glTranslatef(0.0f, 1.0f, 0.0f);
+					draw_cube(doingShadows);
+					glPopMatrix();
 				}
+				// setup train params
+				trainParams[0] = qt0; trainParams[1] = qt1; trainParams[2] = orientT;
 			}
 		}
 	}
@@ -699,6 +767,71 @@ void TrainView::drawStuff(bool doingShadows)
 	if (!tw->trainCam->value())
 		drawTrain(this, doingShadows);
 #endif
+}
+
+void TrainView::draw_cube(bool doingShadows) {
+	glBegin(GL_QUADS);                // Begin drawing the color cube with 6 quads
+	// Top face (y = 1.0f)
+	// Define vertices in counter-clockwise (CCW) order with normal pointing out
+	if (!doingShadows)
+		glColor3ub(255, 255, 255);
+		// glColor3ub(0, 255, 0);     // Green
+	glNormal3f(0.0f, 1.0f, 0.0f);
+	glVertex3f(1.0f, 1.0f, -1.0f);
+	glVertex3f(-1.0f, 1.0f, -1.0f);
+	glVertex3f(-1.0f, 1.0f, 1.0f);
+	glVertex3f(1.0f, 1.0f, 1.0f);
+
+	// Bottom face (y = -1.0f)
+	if (!doingShadows)
+		glColor3ub(255, 255, 255);
+		// glColor3ub(255, 128, 0);     // Orange
+	glNormal3f(0.0f, -1.0f, 0.0f);
+	glVertex3f(1.0f, -1.0f, 1.0f);
+	glVertex3f(-1.0f, -1.0f, 1.0f);
+	glVertex3f(-1.0f, -1.0f, -1.0f);
+	glVertex3f(1.0f, -1.0f, -1.0f);
+
+	// Front face  (z = 1.0f)
+	if (!doingShadows)
+		glColor3ub(255, 255, 255);
+		// glColor3ub(255, 0, 0);     // Red
+	glNormal3f(0.0f, 0.0f, 1.0f);
+	glVertex3f(1.0f, 1.0f, 1.0f);
+	glVertex3f(-1.0f, 1.0f, 1.0f);
+	glVertex3f(-1.0f, -1.0f, 1.0f);
+	glVertex3f(1.0f, -1.0f, 1.0f);
+
+	// Back face (z = -1.0f)
+	if (!doingShadows)
+		glColor3ub(255, 255, 255);
+		// glColor3ub(255, 255, 0);     // Yellow
+	glNormal3f(0.0f, 0.0f, -1.0f);
+	glVertex3f(1.0f, -1.0f, -1.0f);
+	glVertex3f(-1.0f, -1.0f, -1.0f);
+	glVertex3f(-1.0f, 1.0f, -1.0f);
+	glVertex3f(1.0f, 1.0f, -1.0f);
+
+	// Left face (x = -1.0f)
+	if (!doingShadows)
+		glColor3ub(255, 255, 255);
+		// glColor3ub(0, 0, 255);     // Blue
+	glNormal3f(-1.0f, 0.0f, 0.0f);
+	glVertex3f(-1.0f, 1.0f, 1.0f);
+	glVertex3f(-1.0f, 1.0f, -1.0f);
+	glVertex3f(-1.0f, -1.0f, -1.0f);
+	glVertex3f(-1.0f, -1.0f, 1.0f);
+
+	// Right face (x = 1.0f)
+	if (!doingShadows)
+		glColor3ub(255, 255, 255);
+		// glColor3ub(255, 0, 255);     // Magenta
+	glNormal3f(1.0f, 0.0f, 0.0f);
+	glVertex3f(1.0f, 1.0f, -1.0f);
+	glVertex3f(1.0f, 1.0f, 1.0f);
+	glVertex3f(1.0f, -1.0f, 1.0f);
+	glVertex3f(1.0f, -1.0f, -1.0f);
+	glEnd();  // End of drawing color-cube
 }
 
 // 
