@@ -127,7 +127,7 @@ class TrainView : public Fl_Gl_Window
 			return result;
 		}
 
-		void getCurve(int i, const int& size, float* g, float* m, float* t, float time, Pnt3f& qt);
+		void getCurve(int i, const int& size, float* g, float* m, float* t, float time, Pnt3f& qt, int type);
 
 	public:
 		ArcBallCam		arcball;			// keep an ArcBall for the UI

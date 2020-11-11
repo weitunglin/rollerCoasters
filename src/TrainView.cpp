@@ -231,8 +231,8 @@ void TrainView::draw()
 	glEnable(GL_COLOR_MATERIAL);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_LIGHTING);
-	// glEnable(GL_LIGHT0);
-	glDisable(GL_LIGHT0);
+	glEnable(GL_LIGHT0);
+	// glDisable(GL_LIGHT0);
 	glDisable(GL_LIGHT1);
 	glDisable(GL_LIGHT2);
 
@@ -258,10 +258,17 @@ void TrainView::draw()
 	// * set the light parameters
 	//
 	//**********************************************************************
+	GLfloat lightPosition1[]	= {0,1,1,0}; // {50, 200.0, 50, 1.0};
+	GLfloat lightPosition2[]	= {1, 0, 0, 0};
+	GLfloat lightPosition3[]	= {0, -1, 0, 0};
+	GLfloat yellowLight[]		= {0.5f, 0.5f, .1f, 1.0};
+	GLfloat whiteLight[]			= {1.0f, 1.0f, 1.0f, 1.0};
+	GLfloat blueLight[]			= {.1f,.1f,.3f,1.0};
+	GLfloat grayLight[]			= {.3f, .3f, .3f, 1.0};
 
-	// glLightfv(GL_LIGHT0, GL_POSITION, lightPosition1);
-	// glLightfv(GL_LIGHT0, GL_DIFFUSE, whiteLight);
-	// glLightfv(GL_LIGHT0, GL_AMBIENT, grayLight);
+	glLightfv(GL_LIGHT0, GL_POSITION, lightPosition1);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, whiteLight);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, grayLight);
 
 	// glLightfv(GL_LIGHT1, GL_POSITION, lightPosition2);
 	// glLightfv(GL_LIGHT1, GL_DIFFUSE, yellowLight);
@@ -272,7 +279,7 @@ void TrainView::draw()
 	if (tw->dirLight->value()) {
 		// * Directional Light
 		float light3NoAmbient[4] = {.0, .0, .0, 1.0};
-		float light3WhiteDiffuse[4] = {1.0, 0.0, 0.0, 1.0};
+		float light3WhiteDiffuse[4] = {1.0, 1.0, 0.0, 1.0}; // yellow
 		float light3Position[4] = {1.0, 1.0, 0.0, 0.0};
 		glLightfv(GL_LIGHT0, GL_AMBIENT, light3NoAmbient);
 		glLightfv(GL_LIGHT0, GL_DIFFUSE, light3WhiteDiffuse);
@@ -309,7 +316,7 @@ void TrainView::draw()
 
 		glLightf(GL_LIGHT2, GL_SPOT_EXPONENT, 15.0f);
 
-		glLightf(GL_LIGHT2, GL_CONSTANT_ATTENUATION, 0.4f);
+		glLightf(GL_LIGHT2, GL_CONSTANT_ATTENUATION, 0.3f);
 		glLightf(GL_LIGHT2, GL_LINEAR_ATTENUATION, .0f);
 		glLightf(GL_LIGHT2, GL_QUADRATIC_ATTENUATION, .0f);
 	}
@@ -400,49 +407,55 @@ setProjection()
 	}
 }
 
-void TrainView::getCurve(int i, const int& size, float* g, float* m, float* t, float time, Pnt3f& qt) {
+void TrainView::getCurve(int i, const int& size, float* g, float* m, float* t, float time, Pnt3f& qt, int type) {
 	for (int j = -1; j < 3; ++j) {
 		int index = i + j;
 		if (index < 0) index += size;
 		else if (index >= size) index -= size;
 
-		g[j + 1] = m_pTrack->points[index].pos.x;
-		g[4 + (j + 1)] = m_pTrack->points[index].pos.y;
-		g[8 + (j + 1)] = m_pTrack->points[index].pos.z;
+		if (type == 0) {
+			g[j + 1] = m_pTrack->points[index].pos.x;
+			g[4 + (j + 1)] = m_pTrack->points[index].pos.y;
+			g[8 + (j + 1)] = m_pTrack->points[index].pos.z;
+		} else if (type == 1) {
+			g[j + 1] = m_pTrack->points[index].orient.x;
+			g[4 + (j + 1)] = m_pTrack->points[index].orient.y;
+			g[8 + (j + 1)] = m_pTrack->points[index].orient.z;
+		}
 
-		m[j + 1] = pow(time, 3 - (1 + j));
+		t[j + 1] = pow(time, 3 - (1 + j));
 	}
 
 	// multiplication
 	int mSize;
 	float* gm = multiply(g, m, 3, 4, 4, 4, &mSize);
 	float* gmt = multiply(gm, t, 4, 4, 4, 1, &mSize);
+	qt.x = gmt[0];
+	qt.y = gmt[1];
+	qt.z = gmt[2];
 
 	#ifdef _DEBUG
 	std::cout << "g \n";
-	for (int j = 0; j < sizeof(g)/sizeof(float); ++j) {
+	for (int j = 0; j < 12; ++j) {
 		std::cout << g[j] << ",";
 	}
 	std::cout << "end g\n";
 	std::cout << "m \n";
-	for (int j = 0; j < sizeof(m)/sizeof(float); ++j) {
+	for (int j = 0; j < 16; ++j) {
 		std::cout << m[j] << ",";
 	}
 	std::cout << "end m\n";
 	std::cout << "t \n";
-	for (int j = 0; j < sizeof(t)/sizeof(float); ++j) {
+	for (int j = 0; j < 4; ++j) {
 		std::cout << t[j] << ",";
 	}
 	std::cout << "end t\n";
 	std::cout << "gmt \n";
-	for (int j = 0; j < sizeof(gmt)/sizeof(float); ++j) {
+	for (int j = 0; j < 3; ++j) {
 		std::cout << gmt[j] << ",";
 	}
 	std::cout << "end gmt\n";
 	#endif
-	qt.x = gmt[0];
-	qt.y = gmt[1];
-	qt.z = gmt[2];
 }
 
 //************************************************************************
@@ -486,7 +499,7 @@ void TrainView::drawStuff(bool doingShadows)
 
 	int splineType = tw->splineBrowser->value() - 1;
 	static size_t frame = 0;
-	if (!doingShadows) {
+	if (!doingShadows && tw->runButton->value()) {
 		frame += (int)tw->speed->value() <= 0 ? 1 : (int)tw->speed->value();
 		if (frame >= m_pTrack->points.size() * DIVIDE_LINES) frame -= m_pTrack->points.size() * DIVIDE_LINES;
 	}
@@ -523,46 +536,9 @@ void TrainView::drawStuff(bool doingShadows)
 		if (splineType == SplineLinear) {
 			qt = (1 - t) * cpPosP1 + t * cpPosP2;
 		} else if (splineType == SplineCardinalCubic) {
-			for (int j = -1; j < 3; ++j) {
-				int index = i + j;
-				if (index < 0) index += size;
-				else if (index >= size) index -= size;
-
-				g[j + 1] = m_pTrack->points[index].pos.x;
-				g[4 + (j + 1)] = m_pTrack->points[index].pos.y;
-				g[8 + (j + 1)] = m_pTrack->points[index].pos.z;
-
-				mt[j + 1] = pow(t, 3 - (1 + j));
-			}
-
-			// multiplication
-			int mSize;
-			float* gm = multiply(g, mCardinal, 3, 4, 4, 4, &mSize);
-			float* gmt = multiply(gm, mt, 4, 4, 4, 1, &mSize);
-			qt.x = gmt[0];
-			qt.y = gmt[1];
-			qt.z = gmt[2];
+			getCurve(i, size, g, mCardinal, mt, t, qt, 0);
 		} else if (splineType == SplineCubicBSpline) {
-			// getCurve((int)i, size, g, m, mt, t, qt);
-			for (int j = -1; j < 3; ++j) {
-				int index = i + j;
-				if (index < 0) index += size;
-				else if (index >= size) index -= size;
-
-				g[j + 1] = m_pTrack->points[index].pos.x;
-				g[4 + (j + 1)] = m_pTrack->points[index].pos.y;
-				g[8 + (j + 1)] = m_pTrack->points[index].pos.z;
-
-				mt[j + 1] = pow(t, 3 - (1 + j));
-			}
-
-			// multiplication
-			int mSize;
-			float* gm = multiply(g, mBSpline, 3, 4, 4, 4, &mSize);
-			float* gmt = multiply(gm, mt, 4, 4, 4, 1, &mSize);
-			qt.x = gmt[0];
-			qt.y = gmt[1];
-			qt.z = gmt[2];
+			getCurve(i, size, g, mBSpline, mt, t, qt, 0);
 		}
 
 		for (size_t j = 0; j < DIVIDE_LINES; ++j) {
@@ -572,111 +548,20 @@ void TrainView::drawStuff(bool doingShadows)
 			if (splineType == SplineLinear) {
 				qt = (1 - t) * cpPosP1 + t * cpPosP2;
 			} else if (splineType == SplineCardinalCubic) {
-				for (int j = -1; j < 3; ++j) {
-					int index = i + j;
-					if (index < 0) index += size;
-					else if (index >= size) index -= size;
-
-					g[j + 1] = m_pTrack->points[index].pos.x;
-					g[4 + (j + 1)] = m_pTrack->points[index].pos.y;
-					g[8 + (j + 1)] = m_pTrack->points[index].pos.z;
-
-					mt[j + 1] = pow(t, 3 - (1 + j));
-				}
-
-				// multiplication
-				int mSize;
-				float* gm = multiply(g, mCardinal, 3, 4, 4, 4, &mSize);
-				float* gmt = multiply(gm, mt, 4, 4, 4, 1, &mSize);
-				qt.x = gmt[0];
-				qt.y = gmt[1];
-				qt.z = gmt[2];
+				getCurve(i, size, g, mCardinal, mt, t, qt, 0);
 			} else if (splineType == SplineCubicBSpline) {
-				for (int k = -1; k < 3; ++k) {
-					int index = i + k;
-					if (index < 0) index += size;
-					else if (index >= size) index -= size;
-
-					g[(k + 1)] = m_pTrack->points[index].pos.x;
-					g[(k + 1) + 4] = m_pTrack->points[index].pos.y;
-					g[(k + 1) + 8] = m_pTrack->points[index].pos.z;
-
-					mt[k + 1] = pow(t, 3 - (1 + k));
-				}
-
-				// multiplication
-				int gmSize;
-				float* gm = multiply(g, mBSpline, 3, 4, 4, 4, &gmSize);
-				int gmtSize;
-				float* gmt = multiply(gm, mt, 4, 4, 4, 1, &gmtSize);
-
-				qt.x = gmt[0];
-				qt.y = gmt[1];
-				qt.z = gmt[2];
+				getCurve(i, size, g, mBSpline, mt, t, qt, 0);
 			}
 			qt1 = qt;
-
-			// // draw
-			// * single middle line
-			// * not used anymore
-			// glLineWidth(3);
-			// glBegin(GL_LINES);
-			// if (!doingShadows) {
-			// 	glColor3ub(32, 32, 64);
-			// }
-			// glVertex3f(qt0.x, qt0.y, qt0.z);
-			// glVertex3f(qt1.x, qt1.y, qt1.z);
-			// glEnd();
-			// glLineWidth(1);
 
 			// cross
 			Pnt3f orientT;
 			if (splineType == SplineLinear) {
 				orientT = (1 - t) * cpOrientP1 + t * cpOrientP2;
 			} else if (splineType == SplineCardinalCubic) {
-				for (int k = -1; k < 3; ++k) {
-					int index = i + k;
-					if (index < 0) index += size;
-					else if (index >= size) index -= size;
-
-					g[(k + 1)] = m_pTrack->points[index].orient.x;
-					g[(k + 1) + 4] = m_pTrack->points[index].orient.y;
-					g[(k + 1) + 8] = m_pTrack->points[index].orient.z;
-
-					mt[k + 1] = pow(t, 3 - (1 + k));
-				}
-
-				// multiplication
-				int gmSize;
-				float* gm = multiply(g, mCardinal, 3, 4, 4, 4, &gmSize);
-				int gmtSize;
-				float* gmt = multiply(gm, mt, 4, 4, 4, 1, &gmtSize);
-
-				orientT.x = gmt[0];
-				orientT.y = gmt[1];
-				orientT.z = gmt[2];
+				getCurve(i, size, g, mCardinal, mt, t, orientT, 1);
 			} else if (splineType == SplineCubicBSpline) {
-				for (int k = -1; k < 3; ++k) {
-					int index = i + k;
-					if (index < 0) index += size;
-					else if (index >= size) index -= size;
-
-					g[(k + 1)] = m_pTrack->points[index].orient.x;
-					g[(k + 1) + 4] = m_pTrack->points[index].orient.y;
-					g[(k + 1) + 8] = m_pTrack->points[index].orient.z;
-
-					mt[k + 1] = pow(t, 3 - (1 + k));
-				}
-
-				// multiplication
-				int gmSize;
-				float* gm = multiply(g, mBSpline, 3, 4, 4, 4, &gmSize);
-				int gmtSize;
-				float* gmt = multiply(gm, mt, 4, 4, 4, 1, &gmtSize);
-
-				orientT.x = gmt[0];
-				orientT.y = gmt[1];
-				orientT.z = gmt[2];
+				getCurve(i, size, g, mBSpline, mt, t, orientT, 1);
 			}
 			orientT.normalize();
 			Pnt3f crossT = (qt1 - qt0) * orientT;
@@ -718,20 +603,6 @@ void TrainView::drawStuff(bool doingShadows)
 
 			if (frame == (i * DIVIDE_LINES) + j) {
 				if (!tw->trainCam->value()) {
-					// glBegin(GL_QUADS);
-					// if (!doingShadows) {
-					// 	glColor3ub(255, 255, 255);	
-					// }
-					// glTexCoord2f(0.0f, 0.0f);
-					// glVertex3f(qt.x - 5, qt.y - 5, qt.z - 5);
-					// glTexCoord2f(1.0f, 0.0f);
-					// glVertex3f(qt.x + 5, qt.y - 5, qt.z - 5);
-					// glTexCoord2f(1.0f, 1.0f);
-					// glVertex3f(qt.x + 5, qt.y + 5, qt.z - 5);
-					// glTexCoord2f(0.0f, 1.0f);
-					// glVertex3f(qt.x - 5, qt.y + 5, qt.z - 5);
-					// glEnd();
-
 					Pnt3f u = (qt1 - qt0); u.normalize();
 					Pnt3f w = u * orientT; w.normalize();
 					Pnt3f v = w * u; v.normalize();
@@ -774,8 +645,8 @@ void TrainView::draw_cube(bool doingShadows) {
 	// Top face (y = 1.0f)
 	// Define vertices in counter-clockwise (CCW) order with normal pointing out
 	if (!doingShadows)
-		glColor3ub(255, 255, 255);
-		// glColor3ub(0, 255, 0);     // Green
+		glColor3ub(0, 255, 0);     // Green
+		// glColor3ub(255, 255, 255);
 	glNormal3f(0.0f, 1.0f, 0.0f);
 	glVertex3f(1.0f, 1.0f, -1.0f);
 	glVertex3f(-1.0f, 1.0f, -1.0f);
@@ -784,8 +655,8 @@ void TrainView::draw_cube(bool doingShadows) {
 
 	// Bottom face (y = -1.0f)
 	if (!doingShadows)
-		glColor3ub(255, 255, 255);
-		// glColor3ub(255, 128, 0);     // Orange
+		glColor3ub(255, 128, 0);     // Orange
+		// glColor3ub(255, 255, 255);
 	glNormal3f(0.0f, -1.0f, 0.0f);
 	glVertex3f(1.0f, -1.0f, 1.0f);
 	glVertex3f(-1.0f, -1.0f, 1.0f);
@@ -794,8 +665,8 @@ void TrainView::draw_cube(bool doingShadows) {
 
 	// Front face  (z = 1.0f)
 	if (!doingShadows)
-		glColor3ub(255, 255, 255);
-		// glColor3ub(255, 0, 0);     // Red
+		glColor3ub(255, 0, 0);     // Red
+		// glColor3ub(255, 255, 255);
 	glNormal3f(0.0f, 0.0f, 1.0f);
 	glVertex3f(1.0f, 1.0f, 1.0f);
 	glVertex3f(-1.0f, 1.0f, 1.0f);
@@ -804,8 +675,8 @@ void TrainView::draw_cube(bool doingShadows) {
 
 	// Back face (z = -1.0f)
 	if (!doingShadows)
-		glColor3ub(255, 255, 255);
-		// glColor3ub(255, 255, 0);     // Yellow
+		glColor3ub(255, 255, 0);     // Yellow
+		// glColor3ub(255, 255, 255);
 	glNormal3f(0.0f, 0.0f, -1.0f);
 	glVertex3f(1.0f, -1.0f, -1.0f);
 	glVertex3f(-1.0f, -1.0f, -1.0f);
@@ -814,8 +685,8 @@ void TrainView::draw_cube(bool doingShadows) {
 
 	// Left face (x = -1.0f)
 	if (!doingShadows)
-		glColor3ub(255, 255, 255);
-		// glColor3ub(0, 0, 255);     // Blue
+		glColor3ub(0, 0, 255);     // Blue
+		// glColor3ub(255, 255, 255);
 	glNormal3f(-1.0f, 0.0f, 0.0f);
 	glVertex3f(-1.0f, 1.0f, 1.0f);
 	glVertex3f(-1.0f, 1.0f, -1.0f);
@@ -824,8 +695,8 @@ void TrainView::draw_cube(bool doingShadows) {
 
 	// Right face (x = 1.0f)
 	if (!doingShadows)
-		glColor3ub(255, 255, 255);
-		// glColor3ub(255, 0, 255);     // Magenta
+		glColor3ub(255, 0, 255);     // Magenta
+		// glColor3ub(255, 255, 255);
 	glNormal3f(1.0f, 0.0f, 0.0f);
 	glVertex3f(1.0f, 1.0f, -1.0f);
 	glVertex3f(1.0f, 1.0f, 1.0f);
