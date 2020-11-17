@@ -27,6 +27,8 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <glm/glm.hpp>
+#include "objloader.hpp"
 
 // Preclarify for preventing the compiler error
 class TrainWindow;
@@ -138,4 +140,19 @@ class TrainView : public Fl_Gl_Window
 		std::vector<TrackTrainInfo> frameTable;
 
 		TrainPosition* trainPosition;
+
+		std::vector<glm::vec3> trainVertices;
+		std::vector<glm::vec2> trainUvs;
+		std::vector<glm::vec3> trainNormals;
+
+		std::vector<glm::vec3> carVertices;
+		std::vector<glm::vec2> carUvs;
+		std::vector<glm::vec3> carNormals;
+
+		const std::string TRAIN_OBJ_NAME = "model.obj";
+		const std::string CAR_OBJ_NAME = "car.obj";
+
+		uint32_t trainVertexBuffer, trainUvBuffer, trainNormalBuffer;
+		uint32_t carVertexBuffer, carUvBuffer, carNormalBuffer;
+		bool inited = false;
 };

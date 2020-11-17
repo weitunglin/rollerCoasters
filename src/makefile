@@ -6,7 +6,7 @@ LDFLAGS = $(shell fltk-config --use-gl --use-glut --use-images --ldflags )
 LDSTATIC = $(shell fltk-config --use-gl --use-glut --use-images --ldstaticflags ) 
 
 TARGET = app
-SRCS = CallBacks.cpp ControlPoint.cpp Track.cpp TrainView.cpp TrainWindow.cpp main.cpp
+SRCS = CallBacks.cpp ControlPoint.cpp Track.cpp TrainView.cpp TrainWindow.cpp objloader.cpp main.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 DIR = ./Utilities

@@ -171,9 +171,9 @@ TrainWindow(const int x, const int y)
 
 		pty+=30;
 
-		Fl_Button* addCarButton = new Fl_Button(605, pty, 30, 30, "Add Car");
+		Fl_Button* addCarButton = new Fl_Button(605, pty, 80, 30, "Add Car");
 		addCarButton->callback((Fl_Callback*)addCar, this);
-		Fl_Button* deleteCarButton = new Fl_Button(635, pty, 30, 30, "Delete Car");
+		Fl_Button* deleteCarButton = new Fl_Button(690, pty, 80, 30, "Delete Car");
 		deleteCarButton->callback((Fl_Callback*)deleteCar, this);
 
 		pty += 30;

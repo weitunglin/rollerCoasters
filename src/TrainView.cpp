@@ -61,6 +61,19 @@ TrainView(int x, int y, int w, int h, const char* l)
 	}
 	
 	trainPosition = new TrainPosition();
+
+	bool res = loadOBJ(TRAIN_OBJ_NAME.c_str(), trainVertices, trainUvs, trainNormals);
+	if (!res) {
+		throw std::runtime_error("Could not open train obj file");
+	} else {
+		std::cout << "load train obj file finished\n";
+	}
+	res = loadOBJ(CAR_OBJ_NAME.c_str(), carVertices, carUvs, carNormals);
+	if (!res) {
+		throw std::runtime_error("Could not open car obj file");
+	} else {
+		std::cout << "load car obj file finished\n";
+	}
 }
 
 //************************************************************************
@@ -192,12 +205,45 @@ void TrainView::draw()
 	if (gladLoadGL())
 	{
 		//initiailize VAO, VBO, Shader...
+		if (!inited) {
+			glGenBuffers(1, &trainVertexBuffer);
+			glBindBuffer(GL_ARRAY_BUFFER, trainVertexBuffer);
+			glBufferData(GL_ARRAY_BUFFER, trainVertices.size() * sizeof(glm::vec3), &trainVertices[0], GL_STATIC_DRAW);
+
+			glGenBuffers(1, &trainUvBuffer);
+			glBindBuffer(GL_ARRAY_BUFFER, trainUvBuffer);
+			glBufferData(GL_ARRAY_BUFFER, trainUvs.size() * sizeof(glm::vec2), &trainUvs[0], GL_STATIC_DRAW);
+
+			glGenBuffers(1, &trainNormalBuffer);
+			glBindBuffer(GL_ARRAY_BUFFER, trainNormalBuffer);
+			glBufferData(GL_ARRAY_BUFFER, trainNormals.size() * sizeof(glm::vec3), &trainNormals[0], GL_STATIC_DRAW);
+			std::cout << (int)trainVertexBuffer << "," << (int)trainUvBuffer << "," << (int)trainNormalBuffer << std::endl;
+			
+			glGenBuffers(1, &carVertexBuffer);
+			glBindBuffer(GL_ARRAY_BUFFER, carVertexBuffer);
+			glBufferData(GL_ARRAY_BUFFER, carVertices.size() * sizeof(glm::vec3), &carVertices[0], GL_STATIC_DRAW);
+
+			glGenBuffers(1, &carUvBuffer);
+			glBindBuffer(GL_ARRAY_BUFFER, carUvBuffer);
+			glBufferData(GL_ARRAY_BUFFER, carUvs.size() * sizeof(glm::vec2), &carUvs[0], GL_STATIC_DRAW);
+
+			glGenBuffers(1, &carNormalBuffer);
+			glBindBuffer(GL_ARRAY_BUFFER, carNormalBuffer);
+			glBufferData(GL_ARRAY_BUFFER, carNormals.size() * sizeof(glm::vec3), &carNormals[0], GL_STATIC_DRAW);
+			std::cout << (int)carVertexBuffer << "," << (int)carUvBuffer << "," << (int)carNormalBuffer << std::endl;
+
+			inited = true;
+		}
 	}
 	else
 		throw std::runtime_error("Could not initialize GLAD!");
 
 	// Set up the view port
+	#ifdef RETINA
 	glViewport(0,0,2*w(),2*h());
+	#else
+	glViewport(0,0,w(),h());
+	#endif
 
 	// clear the window, be sure to clear the Z-Buffer too
 	glClearColor(0,0,.3f,0);		// background should be blue
@@ -639,12 +685,12 @@ void TrainView::drawStuff(bool doingShadows)
 		glTranslatef(frameTable[trainPosition->frame].trainParams[3].x, frameTable[trainPosition->frame].trainParams[3].y, frameTable[trainPosition->frame].trainParams[3].z);
 		glMultMatrixf(rotation);
 		glScalef(5.0f, 5.0f, 5.0f);
-		glTranslatef(0.0f, 1.0f, 0.0f);
+		glTranslatef(0.0f, 0.0f, 0.0f);
 		drawCube(doingShadows);
 		glPopMatrix();
 
 		for (size_t i = 0; i < tw->carNum; ++i) {
-			double carLocation = trainPosition->location - ((i + 1) * 20);
+			double carLocation = trainPosition->location - (30 + (i) * 30);
 			if (carLocation < 0) carLocation += frameTable.back().placements;
 			size_t carFrame = getFrameNum(carLocation);
 
@@ -661,8 +707,8 @@ void TrainView::drawStuff(bool doingShadows)
 			glTranslatef(frameTable[carFrame].trainParams[3].x, frameTable[carFrame].trainParams[3].y, frameTable[carFrame].trainParams[3].z);
 			glMultMatrixf(rotation);
 			glScalef(5.0f, 5.0f, 5.0f);
-			glTranslatef(0.0f, 1.0f, 0.0f);
-			drawCube(doingShadows);
+			glTranslatef(0.0f, 0.0f, 0.0f);
+			drawCar(doingShadows);
 			glPopMatrix();
 		}
 	}
@@ -694,72 +740,86 @@ void TrainView::drawStuff(bool doingShadows)
 }
 
 void TrainView::drawCube(bool doingShadows) {
-	glBegin(GL_QUADS);                // Begin drawing the color cube with 6 quads
-	// Top face (y = 1.0f)
-	// Define vertices in counter-clockwise (CCW) order with normal pointing out
-	glNormal3f(0.0f, 1.0f, 0.0f);
-	if (!doingShadows)
-		glColor3ub(0, 255, 0);     // Green
-		// glColor3ub(255, 255, 255);
-	glVertex3f(1.0f, 1.0f, -1.0f);
-	glVertex3f(-1.0f, 1.0f, -1.0f);
-	glVertex3f(-1.0f, 1.0f, 1.0f);
-	glVertex3f(1.0f, 1.0f, 1.0f);
+	if (!inited) return;
+	glBegin(GL_TRIANGLES);
+	for (size_t i = 0; i < trainVertices.size(); ++i) {
+		glNormal3f(trainNormals[i].x, trainNormals[i].y, trainNormals[i].z);
+		glVertex3f(trainVertices[i].x, trainVertices[i].y, trainVertices[i].z);
+	}
+	glEnd();
 
-	// Bottom face (y = -1.0f)
-	glNormal3f(0.0f, -1.0f, 0.0f);
-	if (!doingShadows)
-		glColor3ub(255, 128, 0);     // Orange
-		// glColor3ub(255, 255, 255);
-	glVertex3f(1.0f, -1.0f, 1.0f);
-	glVertex3f(-1.0f, -1.0f, 1.0f);
-	glVertex3f(-1.0f, -1.0f, -1.0f);
-	glVertex3f(1.0f, -1.0f, -1.0f);
+	// glBegin(GL_QUADS);                // Begin drawing the color cube with 6 quads
+	// // Top face (y = 1.0f)
+	// // Define vertices in counter-clockwise (CCW) order with normal pointing out
+	// glNormal3f(0.0f, 1.0f, 0.0f);
+	// if (!doingShadows)
+	// 	glColor3ub(0, 255, 0);     // Green
+	// 	// glColor3ub(255, 255, 255);
+	// glVertex3f(1.0f, 1.0f, -1.0f);
+	// glVertex3f(-1.0f, 1.0f, -1.0f);
+	// glVertex3f(-1.0f, 1.0f, 1.0f);
+	// glVertex3f(1.0f, 1.0f, 1.0f);
 
-	// Front face  (z = 1.0f)
-	glNormal3f(0.0f, 0.0f, 1.0f);
-	if (!doingShadows)
-		glColor3ub(255, 0, 0);     // Red
-		// glColor3ub(255, 255, 255);
-	glVertex3f(1.0f, 1.0f, 1.0f);
-	glVertex3f(-1.0f, 1.0f, 1.0f);
-	glVertex3f(-1.0f, -1.0f, 1.0f);
-	glVertex3f(1.0f, -1.0f, 1.0f);
+	// // Bottom face (y = -1.0f)
+	// glNormal3f(0.0f, -1.0f, 0.0f);
+	// if (!doingShadows)
+	// 	glColor3ub(255, 128, 0);     // Orange
+	// 	// glColor3ub(255, 255, 255);
+	// glVertex3f(1.0f, -1.0f, 1.0f);
+	// glVertex3f(-1.0f, -1.0f, 1.0f);
+	// glVertex3f(-1.0f, -1.0f, -1.0f);
+	// glVertex3f(1.0f, -1.0f, -1.0f);
 
-	// Back face (z = -1.0f)
-	glNormal3f(0.0f, 0.0f, -1.0f);
-	if (!doingShadows)
-		glColor3ub(255, 255, 0);     // Yellow
-		// glColor3ub(255, 255, 255);
-	glVertex3f(1.0f, -1.0f, -1.0f);
-	glVertex3f(-1.0f, -1.0f, -1.0f);
-	glVertex3f(-1.0f, 1.0f, -1.0f);
-	glVertex3f(1.0f, 1.0f, -1.0f);
+	// // Front face  (z = 1.0f)
+	// glNormal3f(0.0f, 0.0f, 1.0f);
+	// if (!doingShadows)
+	// 	glColor3ub(255, 0, 0);     // Red
+	// 	// glColor3ub(255, 255, 255);
+	// glVertex3f(1.0f, 1.0f, 1.0f);
+	// glVertex3f(-1.0f, 1.0f, 1.0f);
+	// glVertex3f(-1.0f, -1.0f, 1.0f);
+	// glVertex3f(1.0f, -1.0f, 1.0f);
 
-	// Left face (x = -1.0f)
-	glNormal3f(-1.0f, 0.0f, 0.0f);
-	if (!doingShadows)
-		glColor3ub(0, 0, 255);     // Blue
-		// glColor3ub(255, 255, 255);
-	glVertex3f(-1.0f, 1.0f, 1.0f);
-	glVertex3f(-1.0f, 1.0f, -1.0f);
-	glVertex3f(-1.0f, -1.0f, -1.0f);
-	glVertex3f(-1.0f, -1.0f, 1.0f);
+	// // Back face (z = -1.0f)
+	// glNormal3f(0.0f, 0.0f, -1.0f);
+	// if (!doingShadows)
+	// 	glColor3ub(255, 255, 0);     // Yellow
+	// 	// glColor3ub(255, 255, 255);
+	// glVertex3f(1.0f, -1.0f, -1.0f);
+	// glVertex3f(-1.0f, -1.0f, -1.0f);
+	// glVertex3f(-1.0f, 1.0f, -1.0f);
+	// glVertex3f(1.0f, 1.0f, -1.0f);
 
-	// Right face (x = 1.0f)
-	glNormal3f(1.0f, 0.0f, 0.0f);
-	if (!doingShadows)
-		glColor3ub(255, 0, 255);     // Magenta
-		// glColor3ub(255, 255, 255);
-	glVertex3f(1.0f, 1.0f, -1.0f);
-	glVertex3f(1.0f, 1.0f, 1.0f);
-	glVertex3f(1.0f, -1.0f, 1.0f);
-	glVertex3f(1.0f, -1.0f, -1.0f);
-	glEnd();  // End of drawing color-cube
+	// // Left face (x = -1.0f)
+	// glNormal3f(-1.0f, 0.0f, 0.0f);
+	// if (!doingShadows)
+	// 	glColor3ub(0, 0, 255);     // Blue
+	// 	// glColor3ub(255, 255, 255);
+	// glVertex3f(-1.0f, 1.0f, 1.0f);
+	// glVertex3f(-1.0f, 1.0f, -1.0f);
+	// glVertex3f(-1.0f, -1.0f, -1.0f);
+	// glVertex3f(-1.0f, -1.0f, 1.0f);
+
+	// // Right face (x = 1.0f)
+	// glNormal3f(1.0f, 0.0f, 0.0f);
+	// if (!doingShadows)
+	// 	glColor3ub(255, 0, 255);     // Magenta
+	// 	// glColor3ub(255, 255, 255);
+	// glVertex3f(1.0f, 1.0f, -1.0f);
+	// glVertex3f(1.0f, 1.0f, 1.0f);
+	// glVertex3f(1.0f, -1.0f, 1.0f);
+	// glVertex3f(1.0f, -1.0f, -1.0f);
+	// glEnd();  // End of drawing color-cube
 }
 
 void TrainView::drawCar(bool doingShawdows) {
-
+	if (!inited) return;
+	glBegin(GL_TRIANGLES);
+	for (size_t i = 0; i < carVertices.size(); ++i) {
+		glNormal3f(carNormals[i].x, carNormals[i].y, carNormals[i].z);
+		glVertex3f(carVertices[i].x, carVertices[i].y, carVertices[i].z);
+	}
+	glEnd();
 }
 
 // 
@@ -783,8 +843,13 @@ doPick()
 	make_current();		
 
 	// where is the mouse?
+	#ifdef RETINA
 	int mx = 2 * Fl::event_x(); 
 	int my = 2 * Fl::event_y();
+	#else
+	int mx = Fl::event_x(); 
+	int my = Fl::event_y();
+	#endif
 
 	// get the viewport - most reliable way to turn mouse coords into GL coords
 	int viewport[4];

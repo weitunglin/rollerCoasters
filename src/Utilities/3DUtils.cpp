@@ -237,22 +237,27 @@ int getMouseLine(double& x1, double& y1, double& z1,
 								 double& x2, double& y2, double& z2)
 //===============================================================================
 {
-  int x = 2 * Fl::event_x();
-  int iy = 2 * Fl::event_y();
+	#ifdef RETINA
+	int x = 2 * Fl::event_x();
+	int iy = 2 * Fl::event_y();
+	#else
+	int x = Fl::event_x();
+	int iy = Fl::event_y();
+	#endif
 
-  double mat1[16],mat2[16];		// we have to deal with the projection matrices
-  int viewport[4];
+	double mat1[16],mat2[16];		// we have to deal with the projection matrices
+	int viewport[4];
 
-  glGetIntegerv(GL_VIEWPORT, viewport);
-  glGetDoublev(GL_MODELVIEW_MATRIX,mat1);
-  glGetDoublev(GL_PROJECTION_MATRIX,mat2);
+	glGetIntegerv(GL_VIEWPORT, viewport);
+	glGetDoublev(GL_MODELVIEW_MATRIX,mat1);
+	glGetDoublev(GL_PROJECTION_MATRIX,mat2);
 
-  int y = viewport[3] - iy; // originally had an extra -1?
+	int y = viewport[3] - iy; // originally had an extra -1?
 
-  int i1 = gluUnProject((double) x, (double) y, .25, mat1, mat2, viewport, &x1, &y1, &z1);
-  int i2 = gluUnProject((double) x, (double) y, .75, mat1, mat2, viewport, &x2, &y2, &z2);
+	int i1 = gluUnProject((double) x, (double) y, .25, mat1, mat2, viewport, &x1, &y1, &z1);
+	int i2 = gluUnProject((double) x, (double) y, .75, mat1, mat2, viewport, &x2, &y2, &z2);
 
-  return i1 && i2;
+	return i1 && i2;
 }
 
 
