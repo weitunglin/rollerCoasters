@@ -71,6 +71,8 @@ class TrainWindow : public Fl_Double_Window {
 		// the widgets that make up the Window
 		TrainView*			trainView;
 
+		size_t carNum;
+
 		Fl_Group*			widgets;	// all widgets, grouped for resizing ease
 
 		// utility buttons
@@ -87,12 +89,13 @@ class TrainWindow : public Fl_Double_Window {
 		Fl_Button* dirLight;
 		Fl_Button* posLight;
 		Fl_Button* spotLight;
+		Fl_Button* baseLight;
 
 		// are we animating the train?
 		Fl_Button*			runButton;
 		// if we're animating it, how fast should it go?
 		Fl_Value_Slider*	speed;
-		Fl_Button*			arcLength;		// do we use arc length for speed?
+		Fl_Button*			arcLength;
 
 		// we have other widgets as part of the sample solution
 		// this is not for 559 students to know about

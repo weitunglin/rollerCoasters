@@ -248,3 +248,12 @@ void rmzCB(Fl_Widget*, TrainWindow* tw)
 	rollz(tw, -1);
 }
 
+void addCar(Fl_Widget*, TrainWindow* tw) {
+	if (tw->carNum >= 10) return;
+	++tw->carNum;
+}
+
+void deleteCar(Fl_Widget*, TrainWindow* tw) {
+	if (tw->carNum <= 0) return;
+	--tw->carNum;
+}

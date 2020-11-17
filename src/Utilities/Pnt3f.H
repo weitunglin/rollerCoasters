@@ -30,7 +30,8 @@
 
 *************************************************************************/
 #pragma once
-
+#include <iostream>
+#include <string>
 
 class Pnt3f {
 	public:
@@ -64,6 +65,12 @@ class Pnt3f {
 		// note - the operators above are for Pnt3f*scalar, here we have scalar*Pnt3f
 		friend Pnt3f operator * (const float s, const Pnt3f& p );
 
+		friend std::ostream& operator<<(std::ostream& os, const Pnt3f& p);
+
+		std::string print() const {
+			return ("(" + std::to_string(x) + "," + std::to_string(y) + "," + std::to_string(z) + ")");
+		}
+
 	public:
 		// for simplicity, we just make this public so everything can access
 		// it. real software engineers would make the internal data private.
@@ -71,6 +78,7 @@ class Pnt3f {
 		float y;
 		float z;
 };
+
 //*****************************************************************************
 //
 // inline definitions

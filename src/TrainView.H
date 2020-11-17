@@ -54,13 +54,37 @@ class Pnt3f;
 // this uses the old ArcBall Code
 #include "Utilities/ArcBallCam.H"
 
-#define DIVIDE_LINES 200
+#define DIVIDE_LINES 300
+#define SLEEPS_WIDTH 15
 
 typedef enum {
 	SplineLinear = 0,
 	SplineCardinalCubic = 1,
 	SplineCubicBSpline = 2
 } SplineT;
+
+class TrainPosition {
+	public:
+		size_t frame;
+		double location;
+
+		TrainPosition() : frame(0), location(0) {
+
+		}
+};
+
+class TrackTrainInfo {
+	public:
+		std::vector<Pnt3f> trainParams;
+		double placements;
+		size_t frameNum;
+
+		TrackTrainInfo() : trainParams(std::vector<Pnt3f>(4)), placements(0), frameNum(0) {
+
+		}
+
+		friend std::ostream& operator<<(std::ostream& os, const TrackTrainInfo& t);
+};
 
 class TrainView : public Fl_Gl_Window
 {
@@ -90,52 +114,28 @@ class TrainView : public Fl_Gl_Window
 		// pick a point (for when the mouse goes down)
 		void doPick();
 
-		void draw_cube(bool doingShadows);
+		void drawCube(bool doingShadows);
 
-		float* multiply(float* m, float* n, int m1, int m2, int n1, int n2, int* size) {
-			float* result = (float*) malloc(sizeof(float) * (m1 * n2));
+		void drawCar(bool doingShadows);
 
-			// for (int i = 0; i < m1; ++i) {
-			// 	for (int j = 0; j < m2; ++j) {
-			// 		std::cout << m[i*m1 + j] << " ";
-			// 	}
-			// 	std::cout << "\n";
-			// }
-			// std::cout << " X " << "\n";
-			// for (int i = 0; i < n1; ++i) {
-			// 	for (int j = 0; j < n2; ++j) {
-			// 		std::cout << n[i*n1 + j] << " ";
-			// 	}
-			// 	std::cout << "\n";
-			// }
-			// std::cout << " = " << "\n";
-
-			for (int i = 0; i < m1; ++i) {
-				for (int j = 0; j < n2; ++j) {
-					float sum = 0.0;
-					for (int k = 0; k < m2; ++k) {
-						sum += m[(i * m2) + k] * n[(n2 * k) + j];
-					}
-					result[i * n2 + j] = sum;
-					// std::cout << result[i * n2 + j] << " ";
-				}
-				// std::cout << "\n";
-			}
-			// std::cout << "\n";
-
-			*size = m1 * n2;
-			return result;
-		}
+		float* multiply(float* m, float* n, int m1, int m2, int n1, int n2, int* size);
 
 		void getCurve(int i, const int& size, float* g, float* m, float* t, float time, Pnt3f& qt, int type);
 
-	public:
-		ArcBallCam		arcball;			// keep an ArcBall for the UI
-		int				selectedCube;  // simple - just remember which cube is selected
+		double getDistance(const Pnt3f& a, const Pnt3f& b);
 
-		TrainWindow*	tw;				// The parent of this display window
-		CTrack*			m_pTrack;		// The track of the entire scene
+		size_t getFrameNum(double location) const;
+
+	public:
+		ArcBallCam arcball;			// keep an ArcBall for the UI
+		int selectedCube;  			// simple - just remember which cube is selected
+
+		TrainWindow* tw;			// The parent of this display window
+		CTrack*	m_pTrack;			// The track of the entire scene
 
 		Pnt3f* trainParams;
 
+		std::vector<TrackTrainInfo> frameTable;
+
+		TrainPosition* trainPosition;
 };

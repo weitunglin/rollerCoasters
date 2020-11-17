@@ -43,7 +43,7 @@
 //========================================================================
 TrainWindow::
 TrainWindow(const int x, const int y) 
-	: Fl_Double_Window(x,y,800,600,"Train and Roller Coaster")
+	: Fl_Double_Window(x,y,800,600,"Train and Roller Coaster"), carNum(0)
 //========================================================================
 {
 	// make all of the widgets
@@ -114,6 +114,10 @@ TrainWindow(const int x, const int y)
 
 		pty += 110;
 
+		baseLight = new Fl_Button(605, pty, 50, 20, "Base");
+		togglify(baseLight,1);
+
+		pty += 30;
 				// camera buttons - in a radio button group
 		Fl_Group* lightGroup = new Fl_Group(600,pty,195,20);
 		lightGroup->begin();
@@ -166,6 +170,13 @@ TrainWindow(const int x, const int y)
 		rzp->callback((Fl_Callback*)rmzCB,this);
 
 		pty+=30;
+
+		Fl_Button* addCarButton = new Fl_Button(605, pty, 30, 30, "Add Car");
+		addCarButton->callback((Fl_Callback*)addCar, this);
+		Fl_Button* deleteCarButton = new Fl_Button(635, pty, 30, 30, "Delete Car");
+		deleteCarButton->callback((Fl_Callback*)deleteCar, this);
+
+		pty += 30;
 
 		// TODO: add widgets for all of your fancier features here
 #ifdef EXAMPLE_SOLUTION
