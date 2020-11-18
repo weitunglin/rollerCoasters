@@ -716,6 +716,16 @@ void TrainView::drawStuff(bool doingShadows)
 	if (!doingShadows && tw->runButton->value()) {
 		if (tw->arcLength->value()) {
 			trainPosition->location += tw->speed->value() / 2.5;
+			double dy = frameTable[trainPosition->frame].trainParams[1].y - frameTable[trainPosition->frame].trainParams[0].y;
+			// std::cout << dy << std::endl;
+			if (dy <= -0.1) {
+				std::cout << "down\n";
+				trainPosition->location += tw->speed->value() / 5.0;
+			}
+			if (dy >= 0.1) {
+				std::cout << "up\n";
+				trainPosition->location -= tw->speed->value() / 7.5;
+			}
 			if (trainPosition->location > frameTable.back().placements) {
 				trainPosition->location = 0;
 			}
