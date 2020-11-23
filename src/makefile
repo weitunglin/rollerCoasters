@@ -1,6 +1,6 @@
 CC = gcc
 CXX = g++
-DEBUG = -g
+DEBUG =
 CXXFLAGS = $(shell fltk-config --use-gl --use-images --cxxflags ) -I. -I/usr/local/Cellar/glad/include -DRETINA
 LDFLAGS = $(shell fltk-config --use-gl --use-glut --use-images --ldflags ) 
 LDSTATIC = $(shell fltk-config --use-gl --use-glut --use-images --ldstaticflags ) 
